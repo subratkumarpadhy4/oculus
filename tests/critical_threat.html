@@ -57,7 +57,7 @@
         }
     </style>
     <script>
-        // AUTO-SIMULATION: If no query param, reload with fake host to trigger PhishingShield
+        // AUTO-SIMULATION: If no query param, reload with fake host to trigger Oculus
         if (!window.location.search.includes('fake_host_for_testing')) {
             // Using a PUNYCODE domain (xn--) + Brand Impersonation (paypal)
             const newUrl = window.location.protocol + '//' + window.location.pathname + '?fake_host_for_testing=xn--paypal-bad.com';

@@ -1,8 +1,8 @@
-# 🛡️ PhishingShield 2.0: The AI-Powered Guardian of the Web
+# 🛡️ Oculus 2.0: The AI-Powered Guardian of the Web
 
 <div align="center">
 
-![PhishingShield Banner](https://img.shields.io/badge/Security-AI%20Powered-blue?style=for-the-badge&logo=shield)
+![Oculus Banner](https://img.shields.io/badge/Security-AI%20Powered-blue?style=for-the-badge&logo=shield)
 ![Version](https://img.shields.io/badge/Version-2.0.0-green?style=for-the-badge)
 ![Tech](https://img.shields.io/badge/Stack-Chrome%20Ext%20%7C%20Node.js%20%7C%20Llama3-blueviolet?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active%20Defense-success?style=for-the-badge)
@@ -16,11 +16,11 @@
 
 ---
 
-## ⚔️ Why PhishingShield?
+## ⚔️ Why Oculus?
 
-Traditional antiviruses are **Reactive** (waiting for blacklists). PhishingShield is **Proactive**.
+Traditional antiviruses are **Reactive** (waiting for blacklists). Oculus is **Proactive**.
 
-| Feature | 🚫 Traditional Antivirus | 🛡️ PhishingShield 2.0 |
+| Feature | 🚫 Traditional Antivirus | 🛡️ Oculus 2.0 |
 | :--- | :--- | :--- |
 | **Detection logic** | Static Blacklists (Slow) | **Real-Time AI & Heuristics** (Instant) |
 | **Zero-Day Defense** | Fails on new sites | **Detects threat patterns** automatically |
@@ -37,7 +37,7 @@ Traditional antiviruses are **Reactive** (waiting for blacklists). PhishingShiel
 #### 1. 🧩 Modular System View
 The system is composed of specialized detectors that feed into a central Risk Engine.
 
-![PhishingShield Architecture](./images/architecture.png)
+![Oculus Architecture](./images/architecture.png)
 
 <details>
 <summary><b>🔍 Click here to view Interactive Diagram (Mermaid)</b></summary>
@@ -171,12 +171,12 @@ Security meets Fun.
 *   **Unlocks**: High-level features (like ML Analysis) unlock as you level up.
 
 ### 6. 🚨 Report, Ban, & Unban Lifecycle
-*   **Report**: Right-click -> "Report to PhishingShield".
+*   **Report**: Right-click -> "Report to Oculus".
 *   **Ban**: Admins review and ban sites instantly.
 *   **Block**: Uses `declarativeNetRequest` for network-level blocking.
 
 ### 7. 🛡️ Advanced Download Protection
-PhishingShield analyzes incoming files for hidden execution risks:
+Oculus analyzes incoming files for hidden execution risks:
 *   **Double Extension Detection**: Blocks `invoice.pdf.exe`.
 *   **Source Correlation**: Downloads from "High Risk" sites are flagged automatically.
 *   **Fortress Mode**: Lockdown mode handling 3rd party scripts.
@@ -198,8 +198,8 @@ Phishing schemes now use QR codes to bypass text filters. We catch them.
 
 ### 1. Server Setup
 ```bash
-git clone https://github.com/subratkumarpadhy4/PhishingShield.git
-cd PhishingShield/server
+git clone https://github.com/subratkumarpadhy4/Oculus.git
+cd Oculus/server
 npm install
 
 # Setup API Keys
@@ -213,7 +213,7 @@ npm start
 1.  Go to `chrome://extensions`.
 2.  Enable **Developer Mode**.
 3.  Click **Load Unpacked**.
-4.  Select the `PhishingShield-2.0` folder.
+4.  Select the `Oculus-2.0` folder.
 
 ---
 
@@ -260,5 +260,5 @@ npm start
 MIT License. Open Source for Educational and Security Research.
 
 <div align="center">
-<b>Built with ❤️ by the PhishingShield Team</b>
+<b>Built with ❤️ by the Oculus Team</b>
 </div>
