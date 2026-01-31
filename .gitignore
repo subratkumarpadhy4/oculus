@@ -1,5 +1,8 @@
 q# Dependencies
 node_modules/
+server/
+tests/
+scripts/
 server/node_modules/
 
 # Environment variables
@@ -25,4 +28,8 @@ build/
 # Server Data (Local Database)
 server/users.json
 server/reports.json
-server/data/
+# Dev Scripts
+verify_*.js
+repair_*.js
+*.bat
+*.sh
