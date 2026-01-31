@@ -110,15 +110,23 @@ app.post("/api/users/create", async (req, res) => {
         await db.connectDB();
         const { email, password, name, xp, level } = req.body;
 
-        const existingUser = await db.User.findOne({ email: email.toLowerCase() });
-        if (existingUser) {
-            // Update if exists (Sync behavior)
-            // Only update if providing newer data, simplified for now:
-            return res.json({ success: true, message: "User exists, skipped create" });
+        let user = await db.User.findOne({ email: email.toLowerCase() });
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : "";
+
+        if (user) {
+            // User exists - this might be a stub created during OTP generation (Registration flow)
+            // OR a legacy sync. We update the profile.
+            user.name = name || user.name;
+            if (password) user.password = hashedPassword;
+            user.xp = (xp !== undefined) ? xp : user.xp;
+            user.level = level || user.level;
+
+            await user.save();
+            return res.json({ success: true, message: "User profile updated" });
         }
 
-        const hashedPassword = password ? await bcrypt.hash(password, 10) : "";
-        const user = new db.User({
+        // Completely new user
+        user = new db.User({
             email: email.toLowerCase(),
             password: hashedPassword,
             name,
@@ -142,6 +150,11 @@ app.post("/api/users/login", async (req, res) => {
         const user = await db.User.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(401).json({ success: false, message: "Invalid credentials" });
+        }
+
+        // If user was a stub (no password set yet)
+        if (!user.password) {
+            return res.status(401).json({ success: false, message: "Account not fully registered." });
         }
 
         const validPassword = await bcrypt.compare(password, user.password);
@@ -295,49 +308,15 @@ app.post("/api/send-otp", async (req, res) => {
         // Usually, we check if user exists first.
         let user = await db.User.findOne({ email: email.toLowerCase() });
 
-        // If specific registration flow where we don't expect user yet? 
-        // Logic in auth.js says: Register -> Check Exists -> send-otp.
-        // So for REGISTRATION, user might NOT exist yet.
-        // But for FORGOT PASSWORD, user MUST exist.
-
-        // We will store OTP in a temporary way if user doesn't exist?
-        // Actually, for registration, auth.js sends OTP effectively validating the email.
-        // But we can't save OTP to a user record that doesn't exist.
-        // FIX: Create a temporary record or logic?
-        // OR: auth.js verifyOTP creates the user.
-        // So for registration, where do we store the OTP?
-        // CURRENT IMPLEMENTATION: tries to save to `user` object.
-        // If user is null, it returns 404 in original code.
-
-        // But for Registration, we need to send OTP too?
-        // Auth.js `_proceedRegister` calls `/send-otp`.
-        // If user is null, this fails.
-        // So Registration flow was BROKEN for SERVER logic.
-
-        // However, user complained about "mail box", implying they probably have an account or are trying to register.
-        // If they are registering, `user` is null.
-
-        // SOLUTION: Use a collection for OTPs? Or a separate model?
-        // Or if user doesn't exist, create a stub?
-        // Let's create a stub if not exists, or handle it?
-        // Better: For now, if user doesn't exist, we can't save OTP to them.
-        // Ideally we should have an OTP collection.
-        // BUT to minimize changes and risk:
-        // If user doesn't exist, we can't do anything easily without new model.
-        // Let's assume for Forgot Password (user exists).
-
+        // If user doesn't exist, Create a Stub User (Registration Flow)
         if (!user) {
-            // If name is provided, maybe create a temporary user?
-            // Or fail.
-            // For "Reset Password", we want to fail if user not found.
-            // For "Register", we want to succeed.
-            // But the request doesn't distinguish nicely except by context.
-
-            // Simplest fix for now: Only support existing users (Forgot Password).
-            // If registration flow needs it, we'd need a PendingUser model in DB.
-
-            // Let's try to find user. If not found, check if we can handle it.
-            return res.status(404).json({ success: false, message: "User not found" });
+            user = new db.User({
+                email: email.toLowerCase(),
+                name: name || "New User",
+                // Password left undefined until registration complete
+                xp: 0,
+                level: 1
+            });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -379,10 +358,13 @@ app.post("/api/send-otp", async (req, res) => {
                     template_id: EMAILJS_TEMPLATE_ID,
                     user_id: EMAILJS_PUBLIC_KEY,
                     template_params: {
-                        to_email: email,
+                        to_email: email,       // Common default
+                        email: email,          // Another common default
+                        reply_to: email,       // Often used for reply-to
+                        recipient: email,      // Sometimes used
                         to_name: name || "User",
                         otp: otp,
-                        message: `Your Verification Code is: ${otp}` // Dependent on template structure
+                        message: `Your Verification Code is: ${otp}`
                     }
                 };
 
