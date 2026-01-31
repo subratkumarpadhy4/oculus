@@ -14,6 +14,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'phishingshield-secret-key';
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
+// EmailJS Configuration (from Environment Variables)
+const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
+const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
+const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
+const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY; // Optional: If you use private key authentication, though usually Public Key + REST API is handled differently.
+// Note: For server-side sending via EmailJS, we typically use the REST API: https://api.emailjs.com/api/v1.0/email/send
+// which requires Service ID, Template ID, User ID (Public Key), and Template Params.
+// AND crucially, for secure server-side sending, it's safer to use the private key if available, but Public Key works if "Allow Public Key" is on.
+
+
 // Middleware
 app.use(cors({
     origin: "*",
@@ -338,19 +348,69 @@ app.post("/api/send-otp", async (req, res) => {
         console.log(`[OTP] Generated for ${email}: ${otp}`);
 
         // Send Email
-        if (EMAIL_USER && EMAIL_PASS) {
-            const mailOptions = {
-                from: EMAIL_USER,
-                to: email,
-                subject: 'PhishingShield Verification Code',
-                text: `Your PhishingShield verification code is: ${otp}\n\nThis code expires in 10 minutes.`
-            };
+        let emailSent = false;
 
-            await transporter.sendMail(mailOptions);
+        // Priority 1: Nodemailer (SMTP)
+        if (EMAIL_USER && EMAIL_PASS) {
+            try {
+                const mailOptions = {
+                    from: EMAIL_USER,
+                    to: email,
+                    subject: 'PhishingShield Verification Code',
+                    text: `Your PhishingShield verification code is: ${otp}\n\nThis code expires in 10 minutes.`
+                };
+                await transporter.sendMail(mailOptions);
+                emailSent = true;
+                console.log("[OTP] Sent via Nodemailer");
+            } catch (err) {
+                console.error("[OTP] Nodemailer failed:", err.message);
+            }
+        }
+
+        // Priority 2: EmailJS (REST API)
+        if (!emailSent && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
+            try {
+                // We must use 'axios' here or fetch. 'axios' is in package.json
+                const axios = require('axios');
+
+                const emailData = {
+                    service_id: EMAILJS_SERVICE_ID,
+                    template_id: EMAILJS_TEMPLATE_ID,
+                    user_id: EMAILJS_PUBLIC_KEY,
+                    template_params: {
+                        to_email: email,
+                        to_name: name || "User",
+                        otp: otp,
+                        message: `Your Verification Code is: ${otp}` // Dependent on template structure
+                    }
+                };
+
+                // If using Private Key for signatures (more secure), headers needed.
+                // But Public Key auth is standard for simple use.
+
+                await axios.post('https://api.emailjs.com/api/v1.0/email/send', emailData, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                emailSent = true;
+                console.log("[OTP] Sent via EmailJS");
+            } catch (err) {
+                console.error("[OTP] EmailJS failed:", err.response ? err.response.data : err.message);
+            }
+        }
+
+        if (emailSent) {
             res.json({ success: true, message: "OTP sent to email" });
         } else {
-            console.warn("[OTP] No Email Credentials found (EMAIL_USER/EMAIL_PASS). OTP logged only.");
-            res.json({ success: true, message: "OTP generated (Check server logs - Email not configured)" });
+            console.warn("[OTP] No Email Service configured or all failed.");
+            // If configured but failed, we might want to return 500. 
+            // If not configured, we return success for dev demo?
+            // User expects actual email... so returning success for dummy is bad if they are waiting.
+            if (!EMAIL_USER && !EMAILJS_SERVICE_ID) {
+                res.json({ success: true, message: "OTP generated (Check server logs - No Email Provider Configured)" });
+            } else {
+                res.status(500).json({ success: false, message: "Failed to send email. Check configuration." });
+            }
         }
 
     } catch (error) {
