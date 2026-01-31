@@ -315,7 +315,7 @@ app.post("/api/reports/ai-verify", async (req, res) => {
             }
         }
 
-        res.json({ success: true, analysis: analysisResult });
+        res.json({ success: true, aiAnalysis: analysisResult });
 
     } catch (error) {
         console.error('[API] AI Verify Error:', error);
