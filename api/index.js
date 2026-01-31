@@ -358,7 +358,8 @@ app.post("/api/reports/ai-verify", async (req, res) => {
 
         // Save analysis to report if ID is provided
         if (id) {
-            await db.Report.findByIdAndUpdate(id, {
+            // Use findOneAndUpdate with custom 'id' field, NOT findById (which expects _id objectId)
+            await db.Report.findOneAndUpdate({ id: id }, {
                 aiAnalysis: analysisResult,
                 status: analysisResult.riskScore > 75 ? 'banned' : 'pending' // Auto-ban high risk? Maybe just pending.
             });
