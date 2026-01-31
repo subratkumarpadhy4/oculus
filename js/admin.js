@@ -273,7 +273,8 @@ function setupReportFilters() {
     // 4. Delete All / Cleanup Button (Preserve Banned)
     const btnDeleteAll = document.getElementById('btn-delete-all-reports');
     if (btnDeleteAll) {
-        btnDeleteAll.addEventListener('click', async (e) => {
+        // Use .onclick to prevent duplicate listeners
+        btnDeleteAll.onclick = async (e) => {
             e.preventDefault();
 
             if (confirm("Are you sure you want to delete ALL non-banned reports?\n\nThis action will clear pending and ignored reports but keep Banned sites intact.")) {
@@ -284,6 +285,13 @@ function setupReportFilters() {
                 try {
                     // Update Server
                     const res = await fetch(`${API_BASE}/reports/cleanup`, { method: 'POST' });
+
+                    // Check for JSON response
+                    const contentType = res.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error(`Server returned non-JSON response (${res.status}). API might be deploying.`);
+                    }
+
                     const data = await res.json();
 
                     if (!res.ok) throw new Error(data.message || 'Server error');
@@ -311,7 +319,7 @@ function setupReportFilters() {
                     btnDeleteAll.disabled = false;
                 }
             }
-        });
+        };
     }
 }
 
