@@ -110,6 +110,19 @@ app.post("/api/reports/update", async (req, res) => {
     }
 });
 
+app.post("/api/reports/cleanup", async (req, res) => {
+    try {
+        await db.connectDB();
+        // Delete all reports where status is NOT 'banned'
+        const result = await db.Report.deleteMany({ status: { $ne: 'banned' } });
+        console.log(`[API] Cleanup: Deleted ${result.deletedCount} reports.`);
+        res.json({ success: true, count: result.deletedCount });
+    } catch (error) {
+        console.error('[API] Cleanup error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Users endpoints
 app.get("/api/users", async (req, res) => {
     try {

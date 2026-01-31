@@ -269,6 +269,50 @@ function setupReportFilters() {
             });
         });
     }
+
+    // 4. Delete All / Cleanup Button (Preserve Banned)
+    const btnDeleteAll = document.getElementById('btn-delete-all-reports');
+    if (btnDeleteAll) {
+        btnDeleteAll.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            if (confirm("Are you sure you want to delete ALL non-banned reports?\n\nThis action will clear pending and ignored reports but keep Banned sites intact.")) {
+                const originalText = btnDeleteAll.innerText;
+                btnDeleteAll.innerText = "Deleting...";
+                btnDeleteAll.disabled = true;
+
+                try {
+                    // Update Server
+                    const res = await fetch(`${API_BASE}/reports/cleanup`, { method: 'POST' });
+                    const data = await res.json();
+
+                    if (!res.ok) throw new Error(data.message || 'Server error');
+
+                    // Update Local Storage Logic (Remove non-banned)
+                    chrome.storage.local.get(['reportedSites'], (storageData) => {
+                        let localReports = storageData.reportedSites || [];
+                        const bannedOnly = localReports.filter(r => r.status === 'banned');
+
+                        chrome.storage.local.set({ reportedSites: bannedOnly, cachedGlobalReports: [] }, () => {
+                            console.log('[Admin] Local reports cleaned up (Kept banned only)');
+
+                            // Refresh UI
+                            allReportsCache = [];
+                            loadDashboardData();
+                            alert(`✅ Cleanup Complete\n\nDeleted ${data.count} reports from server.`);
+                        });
+                    });
+
+                } catch (error) {
+                    console.error('[Admin] Cleanup failed:', error);
+                    alert("Failed to delete reports: " + error.message);
+                } finally {
+                    btnDeleteAll.innerText = originalText;
+                    btnDeleteAll.disabled = false;
+                }
+            }
+        });
+    }
 }
 
 function setupModalHandlers() {

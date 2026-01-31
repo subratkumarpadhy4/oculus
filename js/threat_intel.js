@@ -137,7 +137,7 @@ const ThreatIntel = {
             return data; // Return full response object (success, message)
         } catch (e) {
             console.error("[ThreatIntel] Failed to vote", e);
-            return { success: false, message: "Network error. Is server running?" };
+            return { success: false, message: e.message || "Network error. Is server running?" };
         }
     }
 };
