@@ -110,25 +110,41 @@ function scanSearch() {
 // ------------------------------------------------------------------
 async function fetchVTAnalysis(resource, type, displayName) {
     try {
-        // Use the general antivirus endpoint
-        const response = await fetch(`${API_BASE}/antivirus/scan`, {
+        // Ensure API_BASE available
+        const baseUrl = (typeof API_BASE !== 'undefined') ? API_BASE : "https://phishingshield-ruby.vercel.app/api";
+
+        console.log(`[Antivirus] Scanning ${type}: ${resource} at ${baseUrl}/antivirus/scan`);
+
+        const response = await fetch(`${baseUrl}/antivirus/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ resource, type })
         });
+
+        // Check for HTTP errors
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Server returned ${response.status}: ${errText}`);
+        }
 
         const data = await response.json();
 
         if (data.success) {
             renderResults(data.result, displayName);
         } else {
-            alert("Scan Failed: " + (data.message || "Unknown Error"));
+            console.warn("[Antivirus] Scan returned unsuccessful:", data);
+            // If it's a "queued" message, show it as info, otherwise error
+            if (data.message && data.message.includes("Scan started")) {
+                alert("ℹ️ " + data.message);
+            } else {
+                alert("⚠️ Scan Failed: " + (data.message || "Unknown error"));
+            }
             hideLoading();
         }
 
     } catch (error) {
         console.error("VT API Error:", error);
-        alert("Backend connection failed.");
+        alert(`❌ Connection Failed: ${error.message}`);
         hideLoading();
     }
 }
