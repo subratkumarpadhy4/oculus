@@ -1081,17 +1081,17 @@
                     <div style="padding: 40px;">
                         <!-- FILE SECTION -->
                         <div id="vt-section-file" class="vt-section">
-                            <div style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px; cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.borderColor=var(--primary); this.style.backgroundColor='rgba(37, 99, 235, 0.05)'"
-                                onmouseout="this.style.borderColor='#cbd5e1'; this.style.backgroundColor='transparent'"
-                                onclick="document.getElementById('vt-file-input').click()">
+                            <label for="vt-file-input"
+                                style="display: block; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.borderColor='var(--primary)'; this.style.backgroundColor='rgba(37, 99, 235, 0.05)'"
+                                onmouseout="this.style.borderColor='#cbd5e1'; this.style.backgroundColor='transparent'">
                                 <div style="font-size: 40px; margin-bottom: 10px;">📁</div>
                                 <div style="font-weight: 600; color: var(--dark); margin-bottom: 5px;">Choose a file to
                                     scan</div>
                                 <div style="font-size: 13px; color: var(--secondary);">We calculate the hash
                                     client-side. Your file is NOT uploaded.</div>
-                                <input type="file" id="vt-file-input" style="display: none;">
-                            </div>
+                            </label>
+                            <input type="file" id="vt-file-input" style="display: none;">
                         </div>
 
                         <!-- URL SECTION -->
