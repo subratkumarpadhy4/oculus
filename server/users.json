@@ -1,0 +1,96 @@
+[
+  {
+    "email": "padhysubratkumar7@gmail.com",
+    "_adminEdit": true,
+    "lastUpdated": 1768682080491,
+    "level": 4,
+    "name": "subrat kumar padhy",
+    "password": "padhysubratkumar7@gmail.com",
+    "pendingXPSync": false,
+    "safeStreak": 0,
+    "xp": 1340,
+    "_adminEditTime": 1768650789311,
+    "_adminEditXP": 800
+  },
+  {
+    "email": "jenapriyanshu2006@gmail.com",
+    "_adminEdit": true,
+    "lastUpdated": 1768587209138,
+    "level": 15,
+    "name": "PRIYANSHU JENA",
+    "password": "jenapriyanshu2006@gmail.com",
+    "pendingXPSync": false,
+    "safeStreak": 0,
+    "xp": 20000,
+    "_adminEditTime": 1768760348880,
+    "_adminEditXP": 200
+  },
+  {
+    "email": "gopakishor007@gmail.com",
+    "_adminEdit": false,
+    "lastUpdated": 1769139133514,
+    "level": 7,
+    "name": "kishor",
+    "password": "gopakishor007@gmail.com",
+    "pendingXPSync": false,
+    "safeStreak": 0,
+    "xp": 4020
+  },
+  {
+    "email": "subratkumar_padhy@srmap.edu.in",
+    "_adminEdit": false,
+    "lastUpdated": 1768728977581,
+    "level": 4,
+    "name": "subrat clg id",
+    "password": "subratkumar_padhy@srmap.edu.in",
+    "pendingXPSync": false,
+    "safeStreak": 0,
+    "xp": 930
+  },
+  {
+    "email": "phishingshield@gmail.com",
+    "_adminEdit": false,
+    "lastUpdated": 1768713332232,
+    "level": 4,
+    "name": "phishingshield",
+    "password": "phishingshield@gmail.com",
+    "pendingXPSync": false,
+    "safeStreak": 0,
+    "xp": 1210
+  },
+  {
+    "email": "subratkumarpadhy.g.new@gmail.com",
+    "_adminEdit": true,
+    "lastUpdated": 1768761189652,
+    "level": 3,
+    "name": "subrat.g",
+    "password": "subratkumarpadhy.g.new@gmail.com",
+    "pendingXPSync": false,
+    "safeStreak": 0,
+    "xp": 690,
+    "_adminEditTime": 1768653377977,
+    "_adminEditXP": 50
+  },
+  {
+    "email": "rajkumarpadhy2006@gmail.com",
+    "lastCriticalTime": 1703800000000,
+    "lastUpdated": 1769277186762,
+    "level": 23,
+    "name": "System Admin",
+    "password": "rajkumarpadhy2006@gmail.com",
+    "pendingXPSync": false,
+    "safeStreak": 0,
+    "xp": 52070
+  },
+  {
+    "email": "priyanshu_jena@srmap.edu.in",
+    "_adminEdit": false,
+    "lastUpdated": 1768470740287,
+    "level": 1,
+    "name": "PJ",
+    "password": "priyanshu_jena@srmap.edu.in",
+    "pendingXPSync": false,
+    "safeStreak": 0,
+    "xp": 0
+  }
+]
