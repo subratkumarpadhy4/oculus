@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const axios = require("axios");
 const db = require("./db");
 
 const app = express();
@@ -349,6 +350,7 @@ app.post("/api/send-otp", async (req, res) => {
 
         // Send Email
         let emailSent = false;
+        let lastError = "";
 
         // Priority 1: Nodemailer (SMTP)
         if (EMAIL_USER && EMAIL_PASS) {
@@ -364,14 +366,13 @@ app.post("/api/send-otp", async (req, res) => {
                 console.log("[OTP] Sent via Nodemailer");
             } catch (err) {
                 console.error("[OTP] Nodemailer failed:", err.message);
+                lastError = "SMTP: " + err.message;
             }
         }
 
         // Priority 2: EmailJS (REST API)
         if (!emailSent && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
             try {
-                // We must use 'axios' here or fetch. 'axios' is in package.json
-                const axios = require('axios');
 
                 const emailData = {
                     service_id: EMAILJS_SERVICE_ID,
@@ -395,21 +396,26 @@ app.post("/api/send-otp", async (req, res) => {
                 emailSent = true;
                 console.log("[OTP] Sent via EmailJS");
             } catch (err) {
-                console.error("[OTP] EmailJS failed:", err.response ? err.response.data : err.message);
+                const errMsg = err.response ? JSON.stringify(err.response.data) : err.message;
+                console.error("[OTP] EmailJS failed:", errMsg);
+                lastError = "EmailJS: " + errMsg;
             }
+        } else if (!emailSent && !lastError) {
+            // If we didn't try SMTP (missing creds) and we didn't try EmailJS (missing vars)
+            lastError = "Missing Configuration (EmailJS vars not found)";
         }
 
         if (emailSent) {
             res.json({ success: true, message: "OTP sent to email" });
         } else {
             console.warn("[OTP] No Email Service configured or all failed.");
-            // If configured but failed, we might want to return 500. 
-            // If not configured, we return success for dev demo?
-            // User expects actual email... so returning success for dummy is bad if they are waiting.
+
+            // If dev mode (no email creds), return success with stub
             if (!EMAIL_USER && !EMAILJS_SERVICE_ID) {
                 res.json({ success: true, message: "OTP generated (Check server logs - No Email Provider Configured)" });
             } else {
-                res.status(500).json({ success: false, message: "Failed to send email. Check configuration." });
+                // Return actual error for debugging
+                res.status(500).json({ success: false, message: "Failed: " + lastError });
             }
         }
 
