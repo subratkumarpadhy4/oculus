@@ -307,7 +307,8 @@ function setupReportFilters() {
                             // Refresh UI
                             allReportsCache = [];
                             loadDashboardData();
-                            alert(`✅ Cleanup Complete\n\nDeleted ${data.count} reports from server.`);
+                            alert(`✅ Cleanup Complete\n\nDeleted ${data.count} reports from server.\n\nPage will reload to sync changes.`);
+                            location.reload();
                         });
                     });
 
