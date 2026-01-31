@@ -1,17 +1,19 @@
 {
     "version": 2,
     "buildCommand": "cd server && npm install",
-    "outputDirectory": ".",
-    "builds": [
-        {
-            "src": "server/server.js",
-            "use": "@vercel/node"
+    "functions": {
+        "server/server.js": {
+            "runtime": "@vercel/node@3"
         }
-    ],
+    },
     "routes": [
         {
             "src": "/api/(.*)",
             "dest": "/server/server.js"
+        },
+        {
+            "src": "^/$",
+            "dest": "/index.html"
         },
         {
             "src": "/(.*\\.html)",
@@ -30,15 +32,8 @@
             "dest": "/images/$1"
         },
         {
-            "src": "^/$",
-            "dest": "/index.html"
-        },
-        {
             "src": "/(.*)",
             "dest": "/$1"
         }
-    ],
-    "env": {
-        "VERCEL": "1"
-    }
+    ]
 }
