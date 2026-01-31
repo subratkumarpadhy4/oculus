@@ -218,6 +218,109 @@ app.post("/api/users/delete", async (req, res) => {
 
 
 // Trust Score endpoints
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
+
+// AI Configuration
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+// AI Verification Endpoint
+app.post("/api/reports/ai-verify", async (req, res) => {
+    try {
+        await db.connectDB();
+        const { id, url, provider = 'groq' } = req.body;
+
+        console.log(`[AI] Analyzing ${url} using ${provider}...`);
+
+        let analysisResult = {
+            riskScore: 0,
+            riskLevel: 'safe', // safe, suspicious, malicious
+            summary: "AI could not determine risk.",
+            details: []
+        };
+
+        const prompt = `
+        Analyze this URL for phishing or security threats: ${url}
+        
+        Provide a JSON response with:
+        - risk_score (0-100)
+        - classification (safe, suspicious, malicious)
+        - summary (1-2 sentences)
+        - reasons (array of strings explaining why)
+        
+        Strictly JSON only.
+        `;
+
+        if (provider === 'gemini' && GEMINI_API_KEY) {
+            try {
+                const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+                const result = await model.generateContent(prompt);
+                const response = result.response;
+                const text = response.text();
+
+                // Extract JSON from markdown code block if present
+                const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+                    analysisResult = {
+                        riskScore: parsed.risk_score,
+                        riskLevel: parsed.classification.toLowerCase(),
+                        summary: parsed.summary,
+                        details: parsed.reasons
+                    };
+                }
+            } catch (err) {
+                console.error("[AI] Gemini Error:", err);
+                return res.status(500).json({ error: "Gemini Analysis Failed" });
+            }
+        } else if (GROQ_API_KEY) {
+            // Default to Groq or if provider is groq
+            try {
+                const groq = new Groq({ apiKey: GROQ_API_KEY });
+                const completion = await groq.chat.completions.create({
+                    messages: [{ role: "user", content: prompt }],
+                    model: "mixtral-8x7b-32768",
+                    response_format: { type: "json_object" }
+                });
+
+                const content = completion.choices[0]?.message?.content;
+                if (content) {
+                    const parsed = JSON.parse(content);
+                    analysisResult = {
+                        riskScore: parsed.risk_score,
+                        riskLevel: parsed.classification.toLowerCase(),
+                        summary: parsed.summary,
+                        details: parsed.reasons
+                    };
+                }
+            } catch (err) {
+                console.error("[AI] Groq Error:", err);
+                return res.status(500).json({ error: "Groq Analysis Failed" });
+            }
+        } else {
+            return res.status(500).json({ error: "No AI Provider Configured (Check Keys)" });
+        }
+
+        // Save Analysis to DB Report
+        if (id) {
+            const report = await db.Report.findOne({ id });
+            if (report) {
+                report.aiAnalysis = analysisResult;
+                report.riskLevel = analysisResult.riskLevel; // Update top-level risk if desired
+                await report.save();
+            }
+        }
+
+        res.json({ success: true, analysis: analysisResult });
+
+    } catch (error) {
+        console.error('[API] AI Verify Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get("/api/trust/score", async (req, res) => {
     try {
         await db.connectDB();
