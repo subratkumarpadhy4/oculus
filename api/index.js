@@ -296,11 +296,13 @@ app.post("/api/reports/ai-verify", async (req, res) => {
                     };
                 }
             } catch (err) {
-                console.error("[AI] Groq Error:", err);
-                return res.status(500).json({ error: "Groq Analysis Failed" });
+                console.error("[AI] Groq Error:", err.message); // Log full error
+                // Return exact error to client for debugging
+                return res.status(500).json({ error: "Groq Analysis Failed: " + err.message });
             }
         } else {
-            return res.status(500).json({ error: "No AI Provider Configured (Check Keys)" });
+            console.error("[AI] No API Keys found. GEMINI_KEY present: " + (!!GEMINI_API_KEY) + ", GROQ_KEY present: " + (!!GROQ_API_KEY));
+            return res.status(500).json({ error: "No AI Provider Configured. Please set GEMINI_API_KEY or GROQ_API_KEY in Vercel." });
         }
 
         // Save Analysis to DB Report
