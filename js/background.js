@@ -1362,7 +1362,7 @@ function syncReportsHeal() {
     });
 }
 // -----------------------------------------------------------------------------
-// SUSPICIOUS DOWNLOAD MONITOR (Bonus Feature)
+// SUSPICIOUS DOWNLOAD MONITOR & ANTIVIRUS SCANNER
 // -----------------------------------------------------------------------------
 const DANGEROUS_EXTENSIONS = [
     'exe', 'scr', 'pif', 'bat', 'vbs', 'ps1', 'msi', 'com', 'cmd', 'js', 'gadget'
@@ -1370,102 +1370,119 @@ const DANGEROUS_EXTENSIONS = [
 
 if (chrome.downloads && chrome.downloads.onCreated) {
     chrome.downloads.onCreated.addListener((downloadItem) => {
-        console.log("[PhishingShield] 📥 Download Event Fired!");
-        console.log("[PhishingShield] Item Details:", JSON.stringify(downloadItem, null, 2));
+        // 1. Basic Filters: Ignore blob/data urls
+        if (!downloadItem.url || downloadItem.url.startsWith('blob:') || downloadItem.url.startsWith('data:')) {
+            return;
+        }
 
-        const filename = downloadItem.filename.toLowerCase();
-        const url = downloadItem.url;
-        const referrer = downloadItem.referrer;
+        console.log(`[PhishingShield] Intercepting download: ${downloadItem.url}`);
 
-        // 1. EXTENSION CHECK
-        const fileExt = filename.split('.').pop();
-        const isDangerousExt = DANGEROUS_EXTENSIONS.includes(fileExt);
-
-        // 2. DOUBLE EXTENSION CHECK (e.g. invoice.pdf.exe)
-        // Matches anything ending in .[3-4 chars].exe
-        const isDoubleExtension = /\.[a-z0-9]{3,4}\.(exe|scr|pif|bat)$/i.test(filename);
-
-        // 3. RISK SCORE CHECK (Context)
-        // We check if the referrer URL was recently flagged as high risk
-        chrome.storage.local.get(['visitLog'], (data) => {
-            const logs = data.visitLog || [];
-            // Find visit log for the referrer
-            // Since logs are chronological, we search backwards or find matching URL
-            // Simplification: If ANY recent log (last 5 mins) matching referrer was HIGH RISK, we alert.
-
-            let isHighRiskSource = false;
-            let sourceScore = 0;
-
-            if (referrer) {
-                // Remove protocol for looser matching
-                const refHost = referrer.replace(/^https?:\/\//, '').split('/')[0];
-                const riskyVisit = logs.find(log =>
-                    (log.url === referrer || (log.hostname && refHost.includes(log.hostname))) &&
-                    log.score > 60
-                );
-
-                if (riskyVisit) {
-                    isHighRiskSource = true;
-                    sourceScore = riskyVisit.score;
-                }
+        // 2. PAUSE DOWNLOAD FOR ANALYSIS
+        chrome.downloads.pause(downloadItem.id, async () => {
+            if (chrome.runtime.lastError) {
+                console.warn("[PhishingShield] Could not pause download:", chrome.runtime.lastError);
+                return; // Already completed or error
             }
 
-            // DECISION LOGIC
-            let warningMessage = null;
-            let priority = 0;
+            const filename = (downloadItem.filename || "unknown").toLowerCase();
+            const url = downloadItem.url;
+
+            // --- HEURISTIC CHECKS (Local, Fast) ---
+
+            // Check 1: Double Extension (e.g. invoice.pdf.exe)
+            const isDoubleExtension = /\.[a-z0-9]{3,4}\.(exe|scr|pif|bat)$/i.test(filename);
+
+            // Check 2: Dangerous Extension
+            const fileExt = filename.split('.').pop();
+            const isDangerousExt = DANGEROUS_EXTENSIONS.includes(fileExt);
 
             if (isDoubleExtension) {
-                // CASE 1: DOUBLE EXTENSION (High Confidence of Malice)
-                warningTitle = "🛑 BLOCKED: Deceptive File Extension";
-                warningMessage = `Risk Factor: DECEPTION\nThe file "${filename}" is likely an executable disguised as a document.\nReason: Double extension pattern detected.`;
-                priority = 2;
-
-            } else if (isHighRiskSource && isDangerousExt) {
-                // CASE 2: DANGEROUS TYPE + BAD SOURCE (High Confidence)
-                warningTitle = "🚨 CRITICAL: High Risk Download";
-                warningMessage = `Risk Factor: MALWARE SOURCE\nThis .${fileExt} file is coming from a high-risk website (Risk Score: ${sourceScore}).\nRecommendation: Do NOT open this file.`;
-                priority = 2;
-
-            } else if (isDangerousExt) {
-                // CASE 3: DANGEROUS TYPE ONLY (Caution)
-                warningTitle = "⚠️ CAUTION: Executable File";
-                warningMessage = `Risk Factor: POTENTIAL MALWARE\nYou are downloading an executable (.${fileExt}).\nThese files can install software without permission. Verify the source is trusted.`;
-                priority = 1;
-
-            } else if (isHighRiskSource) {
-                // CASE 4: BAD SOURCE ONLY (Warning)
-                warningTitle = "⚠️ WARNING: Unverified Source";
-                warningMessage = `Risk Factor: PHISHING ORIGIN\nWe blocked a download from a flagged Phishing Site (${sourceScore}/100).\nEven harmless-looking files can be dangerous from this source.`;
-                priority = 1;
+                blockDownload(downloadItem.id, "🛑 BLOCKED: Deceptive File Extension",
+                    `The file "${filename}" is likely an executable disguised as a document.`);
+                return;
             }
 
-            if (warningMessage) {
-                console.warn("[PhishingShield] 🛡️ Download Warning:", warningMessage);
+            // Notify user scan is starting
+            chrome.notifications.create({
+                type: "basic",
+                iconUrl: "images/icon128.png",
+                title: "Scanning Download 🛡️",
+                message: isDangerousExt ? `Scanning potentially risky .${fileExt} file...` : "Verifying file source with VirusTotal...",
+                priority: 0
+            });
 
-                // Show Notification
-                chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: 'images/icon48.png',
-                    title: warningTitle,
-                    message: warningMessage,
-                    priority: priority,
-                    buttons: [{ title: "Cancel Download" }] // Action requires listener
+            // --- VIRUSTOTAL CHECK (Cloud, Slow) ---
+            try {
+                const response = await fetch(`${API_BASE}/antivirus/scan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resource: url, type: 'url' })
                 });
 
-                // Optional: Auto-cancel if critical?
-                // For this demo, we just warn.
+                const data = await response.json();
+                let isMalicious = false;
+                let vendors = 0;
+
+                if (data.success && data.result) {
+                    const stats = data.result.last_analysis_stats;
+                    if (stats) {
+                        // Strict Block: >= 1 Malicious OR >= 2 Suspicious
+                        if (stats.malicious >= 1 || stats.suspicious >= 2) {
+                            isMalicious = true;
+                            vendors = (stats.malicious || 0) + (stats.suspicious || 0);
+                        }
+                    }
+                } else if (!data.success && data.message && data.message.includes("Scan started")) {
+                    // New URL queued. Fail Open (Allow), but warn if dangerous ext?
+                    if (isDangerousExt) {
+                        chrome.notifications.create({
+                            type: 'basic', iconUrl: 'images/icon48.png',
+                            title: "⚠️ CAUTION: Unverified Executable",
+                            message: `This .${fileExt} file is unknown to VirusTotal. Proceed with caution.`,
+                            priority: 1
+                        });
+                    }
+                    chrome.downloads.resume(downloadItem.id);
+                    return;
+                }
+
+                if (isMalicious) {
+                    blockDownload(downloadItem.id, "Download Blocked 🚨",
+                        `PhishingShield detected a malicious file source! (${vendors} vendors flagged it)`);
+                } else {
+                    // SAFE
+                    chrome.downloads.resume(downloadItem.id);
+                }
+
+            } catch (error) {
+                console.error("[PhishingShield] Download scan error:", error);
+                // Fail Open (Resume)
+                chrome.downloads.resume(downloadItem.id);
             }
         });
     });
 
-    // Handle "Cancel Download" button click
+    // Helper to block and notify
+    function blockDownload(downloadId, title, message) {
+        chrome.downloads.cancel(downloadId, () => {
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'images/icon128.png',
+                title: title,
+                message: message,
+                priority: 2,
+                buttons: [{ title: "View Details in Dashboard" }]
+            });
+        });
+    }
+
+    // Handle Notification Clicks
     chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
-        // In a real app, we'd map notification ID to download ID to cancel it.
-        // Simplified for hackathon: open dashboard
         if (btnIdx === 0) {
-            console.log("User clicked Cancel (Demo)");
+            chrome.tabs.create({ url: "dashboard.html#tab-antivirus" });
         }
     });
+
 } else {
     console.warn("[PhishingShield] chrome.downloads API not available.");
 }
