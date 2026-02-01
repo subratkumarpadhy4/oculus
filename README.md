@@ -28,6 +28,7 @@ Traditional antiviruses are **Reactive** (waiting for blacklists). Oculus is **P
 | **AI Brain** | Cloud-only or minimal | **Hybrid** (Local Bayes + Gemini 1.5 Flash / Groq) |
 | **Community Trust** | None | **Crowdsourced Reputation & Voting** |
 | **Education** | Blocked (Black Box) | **Explains *Why* it was banned** (AI Analysis) |
+| **Email Security** | Limited | **Gmail Sentinel** (AI Spoof Detection) |
 | **Protection Depth** | URL Only | **DOM, Text, Metadata, Scripts, & extensions** |
 
 ---
@@ -156,7 +157,15 @@ Our proprietary **Visual DNA Detection** system.
     *   **Keywords**: Context-aware keyword matching ("Sign in", "Password", "Verify").
 *   **Logic**: If a page *looks* like PayPal (High DNA Match) but is hosted on `secure-login-update.com` (Mismatch), Chameleon triggers a **CRITICAL** alert.
 
-### 2. ⚙️ Advanced Risk Engine (`risk_engine.js`)
+### 2. 📧 AI Gmail Sentinel (Advanced)
+*   **Persistent Threat HUD**: A status badge ("🤖 Analyzing..." -> "✅ Verified") appears instantly on every email, ensuring you never miss a scan.
+*   **AI CSI for Emails**: Uses **Groq (Llama 3 70b)** + **Gemini 1.5** to forensic analyze emails.
+    *   **Multi-Domain Intelligence**: Understands that huge companies use subdomains (`m.learn.coursera.org` matches `coursera.org`). No more false positives on legitimate subdomains.
+    *   **Contextual Spoof Detection**: If an email claims to be "PayPal Support" but comes from `security@paypal-support.xyz`, the AI flags it instantly as "FAKE SENDER".
+    *   **Manual Scan Mode**: Scan ANY email manually, even if it's from an unknown sender, with a single click.
+*   **Attachment Scanner**: Hash-based VirusTotal lookup that respects privacy (files never leave your PC).
+
+### 3. ⚙️ Advanced Risk Engine (`risk_engine.js`)
 The core brain that aggregates scores from multiple heuristics:
 *   **Entropy Sentinel**: Detects DGA (Domain Generation Algorithm) domains like `xy-123-abc-bank.com` by calculating character randomness.
 *   **Typosquatting Detector**: Uses Levenshtein Distance to find domains close to popular brands (e.g., `g00gle.com` or `faceb00k.com`).
@@ -165,7 +174,7 @@ The core brain that aggregates scores from multiple heuristics:
 *   **Mixed Content Warning**: Flags secure HTTPS pages that load insecure scripts or images.
 *   **Domain Coherence (Adaptive Whitelist)**: Grants a "Trust Bonus" if the Page Title perfectly matches the Domain Name (e.g., Title: "Small Bank" matches `smallbank.com`).
 
-### 3. 🤝 Community Trust Manager (`admin.html`)
+### 4. 🤝 Community Trust Manager (`admin.html`)
 A global reputation system where the community defends itself.
 *   **Global Synchronization**: Reputation scores are synced across all users and admins via the Cloud API.
 *   **Admin Dashboard**:
@@ -174,7 +183,7 @@ A global reputation system where the community defends itself.
     *   **Consensus Logic**: Domains with a high "Unsafe" vote ratio are automatically flagged.
 *   **Offline Queue**: If the server is down, reports are queued locally and synced automatically via Chrome Alarms.
 
-### 4. 🚨 Reporting & Incident Response
+### 5. 🚨 Reporting & Incident Response
 How the community keeps the ecosystem clean.
 *   **1-Click Reporting**: Right-click anywhere -> **"Report to PhishingShield"**.
 *   **XP Rewards**: Earn **+10 XP** instantly for contributing.
@@ -184,35 +193,27 @@ How the community keeps the ecosystem clean.
     3.  **Action**: Admin Bans (Syncs globally) or Ignores.
     4.  **Feedback Loop**: User is notified of the outcome ("Confirmed Phishing" or "False Positive").
 
-### 5. 🌍 Global Threat Intelligence & VirusTotal
+### 6. 🌍 Global Threat Intelligence & VirusTotal
 *   **VirusTotal Integration**: Downloads and URLs are checked against **VirusTotal’s API** for immediate reputation status (`/api/antivirus/scan`).
 *   **Real-Time Bans**: Admin bans propagate to **all users instantly**.
 
-### 6. 🧠 Hybrid Neuro-Symbolic AI
+### 7. 🧠 Hybrid Neuro-Symbolic AI
 *   **Tier 1 (Client)**: **Naive Bayes** (`ai_model.js`) scans text for urgency/financial triggers locally. (0ms latency, privacy-first).
 *   **Tier 2 (Cloud)**: **Gemini 1.5 Flash / Groq** analyze high-risk pages for deep context ("Imitating Amazon Login").
 
-### 7. 🛡️ The Risk HUD & Defense Layers
+### 8. 🛡️ The Risk HUD & Defense Layers
 *   **The Risk HUD**: 🟢 Safe (0-20), 🟡 Caution (21-50), 🟠 Dangerous (51-79), 🔴 Critical (80+).
 *   **Fortress Mode**: Panic button to **BLOCK ALL 3rd-party scripts**.
 *   **Rogue Extensions**: Warns about unknown extensions injecting code.
 *   **Quishing Scanner**: Decodes and checks QR codes for malicious links.
 
-### 8. 🎮 Gamification & XP System
+### 9. 🎮 Gamification & XP System
 *   **Leveling**: `Level = sqrt(XP / 100) + 1`.
 *   **Unlocks**:
     *   **Level 5**: QR Scanner.
     *   **Level 10**: ML Heuristics.
     *   **Level 20**: Chameleon Mode.
 *   **Penalties**: Lose XP for visiting banned sites.
-
-### 9. 📧 AI Gmail Sentinel (Advanced)
-*   **AI CSI for Emails**: Uses LLMs (Groq/Gemini) to perform "Forensic Analysis" on emails.
-    *   **Contextual Spoof Detection**: If an email claims to be "PayPal Support", the AI checks the sender address against the *known* legitimate domains for PayPal. "Is `security@paypal-support.xyz` valid? -> AI says: **NO**."
-    *   **Content Analysis**: Reads the email body to detect urgency, grammar traps, and suspicious requests.
-*   **Attachment Scanner**:
-    *   **Privacy First**: Hash-based VirusTotal lookup.
-    *   **Zero-Knowledge**: Files verify without ever leaving your computer.
 
 
 ---
