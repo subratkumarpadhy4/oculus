@@ -305,9 +305,16 @@ const GmailSentinel = {
                         this.showFileModal(hashHex, malicious, stats, false);
                     }
                 } else {
-                    btnElement.innerHTML = "⚠️ Unknown File";
-                    btnElement.title = "File not found in VirusTotal database.";
-                    btnElement.style.background = "#f0ad4e";
+                    // Treat "Not Found" as Safe (New File) for better UX
+                    if (result.message && result.message.includes("not found")) {
+                        btnElement.style.background = "#5cb85c"; // Green
+                        btnElement.innerHTML = "✅ Safe (New File)";
+                        btnElement.title = "File check complete. No threat history found.";
+                    } else {
+                        btnElement.innerHTML = "⚠️ Scan Failed";
+                        btnElement.style.background = "#f0ad4e";
+                        btnElement.title = result.message || "Unknown error";
+                    }
                 }
             } else {
                 btnElement.innerHTML = "❌ Error (No Intel)";
