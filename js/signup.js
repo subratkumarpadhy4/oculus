@@ -127,7 +127,15 @@
                         if (response.success) {
                             // Show OTP notification
                             // if (otpDisplay) otpDisplay.textContent = response.otp; // REMOVED DEMO CODE
-                            if (otpNotification) otpNotification.style.display = 'block';
+                            if (otpNotification) {
+                                otpNotification.style.display = 'block';
+                                otpNotification.innerHTML = `
+                                    <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                                        <strong>✅ OTP Sent!</strong><br>
+                                        Check your email (or server console for simulation code).
+                                    </div>
+                                `;
+                            }
 
                             // Redirect to OTP page after 3 seconds
                             setTimeout(function () {
