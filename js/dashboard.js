@@ -881,7 +881,8 @@ function updateStats(log) {
         const featCham = document.getElementById('feat-cham');
 
         if (featQR) {
-            if (level >= 5) {
+            // UNLOCKED FOR DEMO
+            if (true || level >= 5) {
                 featQR.innerHTML = `<span>✅</span> QR Scanner <span style="font-size:9px;">(ACTIVE)</span>`;
                 featQR.style.color = '#10b981'; // Success Green
                 featQR.style.fontWeight = '600';
@@ -893,7 +894,8 @@ function updateStats(log) {
         }
 
         if (featCham) {
-            if (level >= 20) {
+            // UNLOCKED FOR DEMO
+            if (true || level >= 20) {
                 featCham.innerHTML = `<span>✅</span> Chameleon <span style="font-size:9px;">(ACTIVE)</span>`;
                 featCham.style.color = '#10b981'; // Success Green
                 featCham.style.fontWeight = '600';
