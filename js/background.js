@@ -32,64 +32,121 @@ const TRUSTED_EXTENSIONS = {
 // -----------------------------------------------------------------------------
 // EXTENSION SCANNER LOGIC (Shared)
 // -----------------------------------------------------------------------------
-function checkExtensionRisk(extId, extInfo) {
+// -----------------------------------------------------------------------------
+// EXTENSION SCANNER LOGIC (Shared)
+// -----------------------------------------------------------------------------
+
+// Calculate Risk Score based on Permissions & Manifest
+function checkExtensionRisk(ext) {
     // 1. Check Whitelist (TIER: TRUSTED)
-    if (TRUSTED_EXTENSIONS[extId]) {
-        return { tier: 'TRUSTED', name: TRUSTED_EXTENSIONS[extId] };
+    if (TRUSTED_EXTENSIONS[ext.id]) {
+        return { tier: 'TRUSTED', riskScore: 0, manifest: 'Verified', details: [] };
     }
 
-    // 2. Check Installation Type (TIER: CAUTION vs HIGH RISK)
-    let tier = 'HIGH_RISK'; // Default fail-safe
+    let riskScore = 0;
+    let details = [];
+    const perms = ext.permissions || [];
 
-    if (extInfo.installType === 'normal') {
-        tier = 'CAUTION'; // Verified source (Web Store), but not in our Whitelist
-    } else if (extInfo.installType === 'admin') {
-        tier = 'CAUTION'; // Enterprise installed
+    // 2. Manifest Version Check (Google Deprecation)
+    const mv = ext.manifestVersion || 2; // Default to 2 if unknown
+    if (mv === 2) {
+        riskScore += 40;
+        details.push("Manifest V2 (Legacy/Unsafe)");
     }
+
+    // 3. Permission Risk Scoring
+    if (perms.includes('<all_urls>') || perms.some(p => p.includes('://*'))) {
+        riskScore += 50;
+        details.push("Access to All Websites");
+    }
+    if (perms.includes('cookies')) {
+        riskScore += 20;
+        details.push("Read/Write Cookies");
+    }
+    if (perms.includes('tabs')) {
+        riskScore += 10;
+        details.push("Read Browser Tabs");
+    }
+    if (perms.includes('webRequest') || perms.includes('webRequestBlocking')) {
+        riskScore += 30;
+        details.push("Intercept Network Requests");
+    }
+    if (perms.includes('info.private')) {
+        riskScore += 90; // Extremely rare/suspicious
+        details.push("Access Private Info");
+    }
+
+    // 4. Determine Tier
+    let tier = 'SAFE';
+    if (riskScore >= 70) tier = 'CRITICAL';
+    else if (riskScore >= 40) tier = 'HIGH_RISK';
+    else if (riskScore >= 20) tier = 'CAUTION';
 
     return {
+        id: ext.id,
+        name: ext.name,
         tier: tier,
-        name: extInfo.name,
-        installType: extInfo.installType
+        riskScore: riskScore,
+        manifestVersion: mv,
+        installType: ext.installType,
+        permissions: perms,
+        details: details
     };
 }
 
-// -----------------------------------------------------------------------------
-// ON INSTALL LISTENER (Real-time scanning)
-// -----------------------------------------------------------------------------
-if (chrome.management && chrome.management.onInstalled) {
-    chrome.management.onInstalled.addListener((info) => {
-        const result = checkExtensionRisk(info.id, info);
-        console.log(`[Oculus] New Extension Installed: ${info.name} (${result.tier})`);
+// Full Scan function (Cleans up deleted extensions automatically)
+function scanAllExtensions() {
+    if (!chrome.management) return;
 
-        if (result.tier === 'HIGH_RISK' || result.tier === 'CAUTION') {
-            // 1. Notification
-            const title = result.tier === 'HIGH_RISK' ? '🚨 High Risk Extension Detected' : '⚠️ Unverified Extension';
-            const priority = result.tier === 'HIGH_RISK' ? 2 : 1;
+    chrome.management.getAll((extensions) => {
+        const results = [];
+        const selfId = chrome.runtime.id;
 
-            chrome.notifications.create({
-                type: 'basic',
-                iconUrl: 'images/icon48.png',
-                title: title,
-                message: `"${info.name}" (${result.tier}) detected. Check Dashboard for details.`,
-                priority: priority
-            });
+        extensions.forEach(ext => {
+            // Skip self and disabled extensions (optional: User said "only loaded one")
+            if (ext.id === selfId || !ext.enabled) return;
 
-            // 2. Log to Dashboard (Storage)
-            chrome.storage.local.get(['suspectedExtensions'], (data) => {
-                const list = data.suspectedExtensions || [];
-                // Add new entry
-                list.push({
-                    id: info.id,
-                    name: info.name,
-                    tier: result.tier,
-                    installType: info.installType,
-                    timestamp: Date.now()
+            const assessment = checkExtensionRisk(ext);
+
+            // Only store if there's some risk or it's noteworthy
+            // User requested showing analysis, so we might want to store ALL loaded extensions 
+            // so they can be analyzed in the dashboard.
+            results.push(assessment);
+
+            // Notification for new critical threats
+            if (assessment.tier === 'CRITICAL' && Date.now() - (ext.installTime || 0) < 60000) {
+                chrome.notifications.create({
+                    type: 'basic',
+                    iconUrl: 'images/icon48.png',
+                    title: '🚨 Critical Extension Detected',
+                    message: `${ext.name} has dangerous permissions! Check Dashboard.`,
+                    priority: 2
                 });
-                chrome.storage.local.set({ suspectedExtensions: list });
-            });
-        }
+            }
+        });
+
+        // OVERWRITE storage to ensure deleted extensions are gone
+        chrome.storage.local.set({ suspectedExtensions: results }, () => {
+            console.log(`[Oculus] Extension Scan Complete. Found ${results.length} active extensions.`);
+        });
     });
+}
+
+// -----------------------------------------------------------------------------
+// EVENT LISTENERS (Real-time Scanning)
+// -----------------------------------------------------------------------------
+if (chrome.management) {
+    // 1. Startup
+    chrome.runtime.onStartup.addListener(scanAllExtensions);
+
+    // 2. Install / Uninstall / Enable / Disable
+    chrome.management.onInstalled.addListener(scanAllExtensions);
+    chrome.management.onUninstalled.addListener(scanAllExtensions);
+    chrome.management.onEnabled.addListener(scanAllExtensions);
+    chrome.management.onDisabled.addListener(scanAllExtensions);
+
+    // Initial Scan on load
+    scanAllExtensions();
 }
 
 // -----------------------------------------------------------------------------

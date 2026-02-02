@@ -9,6 +9,8 @@ const nodemailer = require("nodemailer");
 const axios = require("axios");
 const dotenv = require("dotenv");
 const db = require("./db");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 
 console.log("Starting Server...");
 process.on('uncaughtException', (err) => {
@@ -428,6 +430,73 @@ app.post("/api/reports/ai-verify", async (req, res) => {
         res.json({ success: true, aiAnalysis: analysisResult });
     } catch (error) {
         console.error("[AI] Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// EXTENSION ANALYSIS ENDPOINT
+app.post("/api/ai/extensions/analyze", async (req, res) => {
+    try {
+        await db.connectDB();
+        const { name, permissions, installType, manifestVersion } = req.body;
+
+        console.log(`[AI] Analyzing Extension: ${name} (${permissions.length} perms)`);
+
+        const prompt = `
+        Analyze this Browser Extension for security risks.
+        
+        Name: "${name}"
+        Install Type: "${installType}"
+        Manifest Version: ${manifestVersion}
+        Permissions: ${JSON.stringify(permissions)}
+
+        Explain risk of "Manifest V2" (if applicable) vs "Manifest V3".
+        Analyze specific permissions (e.g. <all_urls>, cookies, tabs) and why they are dangerous.
+        
+        Provide a JSON response with:
+        - risk_score (0-100)
+        - classification (safe, suspicious, high_risk)
+        - summary (Short verdict)
+        - manifest_analysis (String explaining Manifest V2 vs V3 risk)
+        - permission_breakdown (Array of strings, each explaining a specific risky permission)
+
+        Strictly JSON.
+        `;
+
+        // Use Gemini if available
+        if (GEMINI_API_KEY) {
+            const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const result = await model.generateContent(prompt);
+            const response = result.response;
+            const text = response.text();
+
+            // Clean JSON
+            let jsonStr = text;
+            const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+            if (jsonMatch) jsonStr = jsonMatch[1];
+            else {
+                const firstBrace = text.indexOf('{');
+                const lastBrace = text.lastIndexOf('}');
+                if (firstBrace !== -1) jsonStr = text.substring(firstBrace, lastBrace + 1);
+            }
+
+            const parsed = JSON.parse(jsonStr);
+            res.json({ success: true, ...parsed });
+        } else {
+            // Fallback if no AI key (shouldn't happen in production)
+            res.json({
+                success: true,
+                risk_score: 50,
+                classification: "unknown",
+                summary: "AI Analysis Unavailable (No Key)",
+                manifest_analysis: "Unable to analyze manifest version.",
+                permission_breakdown: ["AI service unavailable."]
+            });
+        }
+
+    } catch (error) {
+        console.error("Extension Analysis Failed:", error);
         res.status(500).json({ error: error.message });
     }
 });

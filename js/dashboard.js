@@ -1149,6 +1149,110 @@ async function fetchLogTrustScores(entries) {
 }
 
 
+// --- EXTENSION SCANNER UI (Enterprise Grade) ---
+function renderExtensionTable(extensions) {
+    const tbody = document.getElementById('extension-table-body');
+    // If table doesn't exist (e.g. old HTML), inject checks or fallback
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (!extensions || extensions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">No risky extensions detected. System Clean. ✅</td></tr>';
+        return;
+    }
+
+    // Sort by Risk (Critical First)
+    extensions.sort((a, b) => b.riskScore - a.riskScore);
+
+    extensions.forEach(ext => {
+        const tr = document.createElement('tr');
+
+        let riskBadge = '<span class="badge" style="background:#dcfce7; color:#166534">SAFE</span>';
+        if (ext.tier === 'CRITICAL') riskBadge = '<span class="badge" style="background:#fee2e2; color:#991b1b">CRITICAL</span>';
+        else if (ext.tier === 'HIGH_RISK') riskBadge = '<span class="badge" style="background:#ffedd5; color:#9a3412">HIGH RISK</span>';
+        else if (ext.tier === 'CAUTION') riskBadge = '<span class="badge" style="background:#fef9c3; color:#854d0e">CAUTION</span>';
+
+        // Manifest Badge
+        const mv = ext.manifestVersion || 2;
+        const mvBadge = mv === 2
+            ? '<span style="font-size:10px; background:#f1f5f9; color:#64748b; padding:2px 6px; border-radius:4px; margin-left:5px;">MV2 (Legacy)</span>'
+            : '<span style="font-size:10px; background:#f0fdf4; color:#15803d; padding:2px 6px; border-radius:4px; margin-left:5px;">MV3 (Modern)</span>';
+
+        tr.innerHTML = `
+            <td>
+                <div style="font-weight:600; color:#1e293b;">${ext.name}</div>
+                <div style="font-size:11px; color:#64748b;">ID: ${ext.id} ${mvBadge}</div>
+            </td>
+            <td>${riskBadge}</td>
+            <td>
+                <div style="font-size:12px; color:#475569;">
+                    ${ext.details && ext.details.length > 0 ? ext.details.slice(0, 2).map(d => `<div>• ${d}</div>`).join('') : 'No flags'}
+                    ${ext.details.length > 2 ? `<div style="font-style:italic;">+${ext.details.length - 2} more...</div>` : ''}
+                </div>
+            </td>
+            <td>
+                <button class="analyze-ext-btn btn-sm" style="background:#2563eb; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">
+                    🤖 Analyze Risk
+                </button>
+            </td>
+        `;
+
+        const analyzeBtn = tr.querySelector('.analyze-ext-btn');
+        analyzeBtn.addEventListener('click', () => {
+            analyzeExtension(ext, analyzeBtn);
+        });
+
+        tbody.appendChild(tr);
+    });
+}
+
+function analyzeExtension(ext, btn) {
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '🤖 Scanning...';
+
+    // Call API
+    fetch(`${API_BASE}/ai/extensions/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: ext.name,
+            permissions: ext.permissions,
+            installType: ext.installType,
+            manifestVersion: ext.manifestVersion
+        })
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Re-use formatting logic but specialized for extensions
+                const analysisData = {
+                    score: data.risk_score,
+                    suggestion: data.risk_score > 70 ? 'BAN' : (data.risk_score > 30 ? 'CAUTION' : 'SAFE'),
+                    reason: `
+                    **Manifest Analysis:** ${data.manifest_analysis || 'N/A'}<br><br>
+                    **Permission Breakdown:**<br>${(data.permission_breakdown || []).map(p => `• ${p}`).join('<br>')}
+                    <br><br>
+                    **Verdict:** ${data.summary}
+                `
+                };
+                showAnalysisModal(analysisData);
+            } else {
+                alert("AI Analysis Failed: " + data.message);
+            }
+        })
+        .catch(e => {
+            console.error("Analysis Error:", e);
+            alert("Failed to connect to AI server.");
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+}
+
 function generateAndPrintReport() {
     chrome.storage.local.get(['visitLog', 'userXP', 'userLevel', 'currentUser'], (data) => {
         const log = data.visitLog || [];
