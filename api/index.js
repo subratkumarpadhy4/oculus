@@ -239,11 +239,11 @@ app.post("/api/users/login", async (req, res) => {
 app.post("/api/users/sync", async (req, res) => {
     try {
         await db.connectDB();
-        const { email, xp, level } = req.body;
+        const { email, xp, level, lastUpdated } = req.body;
 
         const user = await db.User.findOneAndUpdate(
             { email: email.toLowerCase() },
-            { xp, level, lastUpdated: Date.now() },
+            { xp, level, lastUpdated: lastUpdated || Date.now() },
             { new: true }
         );
 

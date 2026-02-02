@@ -1291,17 +1291,15 @@ function syncXPToServer(customData = {}, directData = null) {
 
                             // Always update if server timestamp is newer OR if server XP is different (admin edit)
                             // This ensures admin edits propagate to client even if client sent old XP
-                            if (serverTime > localTime || data.user.xp !== res.userXP) {
-                                if (serverTime > localTime) {
-                                    console.log(`[Oculus] 📥 Server is newer (${serverTime} > ${localTime}). Updating local XP: ${res.userXP} -> ${data.user.xp}`);
-                                } else {
-                                    console.log(`[Oculus] 📥 Server XP differs (${res.userXP} -> ${data.user.xp}). Updating (likely admin edit).`);
-                                }
+                            if (serverTime > localTime || (data.user.xp !== res.userXP && serverTime > localTime)) {
+                                console.log(`[Oculus] 📥 Server is newer (${serverTime} > ${localTime}). Updating local XP: ${res.userXP} -> ${data.user.xp}`);
+
                                 chrome.storage.local.set({
                                     userXP: data.user.xp,
                                     userLevel: data.user.level || calculateLevel(data.user.xp),
-                                    lastXpUpdate: serverTime || Date.now() // Update timestamp to prevent reverting
+                                    lastXpUpdate: serverTime
                                 }, () => {
+
                                     // Notify tabs to update HUD
                                     chrome.tabs.query({}, (tabs) => {
                                         tabs.forEach(tab => {
