@@ -291,10 +291,7 @@ app.post("/api/users/delete", async (req, res) => {
 
 
 // Trust Score endpoints
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const Groq = require("groq-sdk");
-
-// AI Configuration
+// AI Configuration (imports moved to top)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
