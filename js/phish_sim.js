@@ -123,54 +123,69 @@ async function sendMessage() {
     }
 }
 
-// --- DOMAIN DOJO LOGIC ---
+// --- TABS & MODES LOGIC ---
 const navChat = document.getElementById('nav-chat');
+const navTraining = document.getElementById('nav-training');
 const navDomain = document.getElementById('nav-domain');
+
 const chatArea = document.getElementById('chat-box');
 const chatInput = document.getElementById('chat-input-area');
+const trainingArea = document.getElementById('training-dojo');
 const domainArea = document.getElementById('domain-dojo');
 
 const domainInput = document.getElementById('domain-input');
 const analyzeBtn = document.getElementById('analyze-btn');
 
-// Tab Switching
-if (navChat && navDomain) {
-    navChat.addEventListener('click', () => {
-        navChat.classList.add('active');
-        navChat.style.background = '#238636';
-        navChat.style.color = 'white';
-
-        navDomain.classList.remove('active');
-        navDomain.style.background = 'transparent';
-        navDomain.style.color = '#8b949e';
-
-        chatArea.style.display = 'block';
-        chatInput.style.display = 'flex';
-        domainArea.style.display = 'none';
-
-        // Restore Overlay if needed
-        if (history.length === 0 && document.getElementById('start-overlay').style.display === 'none') {
-            // keep hidden
+function switchTab(tab) {
+    // Reset all
+    [navChat, navTraining, navDomain].forEach(btn => {
+        if (btn) {
+            btn.classList.remove('active');
+            btn.style.background = 'transparent';
+            btn.style.color = '#8b949e';
         }
     });
 
-    navDomain.addEventListener('click', () => {
-        navDomain.classList.add('active');
-        navDomain.style.background = '#238636';
-        navDomain.style.color = 'white';
+    [chatArea, chatInput, trainingArea, domainArea].forEach(el => {
+        if (el) el.style.display = 'none';
 
-        navChat.classList.remove('active');
-        navChat.style.background = 'transparent';
-        navChat.style.color = '#8b949e';
-
-        chatArea.style.display = 'none';
-        chatInput.style.display = 'none';
-        domainArea.style.display = 'block';
-
-        // Hide Start Overlay temporarily if open to see tool
-        document.getElementById('start-overlay').style.display = 'none';
+        // Chat elements are flex/block specific
+        if (el === chatInput && tab === 'chat') el.style.display = 'flex';
+        if (el === chatArea && tab === 'chat') el.style.display = 'block';
     });
+
+    // Activate specific
+    if (tab === 'chat') {
+        navChat.classList.add('active');
+        navChat.style.background = '#238636'; navChat.style.color = 'white';
+        chatArea.style.display = 'block';
+        chatInput.style.display = 'flex';
+    }
+    else if (tab === 'training') {
+        if (navTraining) {
+            navTraining.classList.add('active');
+            navTraining.style.background = '#238636'; navTraining.style.color = 'white';
+        }
+        trainingArea.style.display = 'flex'; // It's flex for centering
+        initTraining(); // Start game
+    }
+    else if (tab === 'domain') {
+        navDomain.classList.add('active');
+        navDomain.style.background = '#238636'; navDomain.style.color = 'white';
+        domainArea.style.display = 'block';
+    }
+
+    // Overlay Handling
+    const startOverlay = document.getElementById('start-overlay');
+    if (tab !== 'chat') {
+        if (startOverlay) startOverlay.style.display = 'none';
+    }
 }
+
+// Event Listeners for Tabs
+if (navChat) navChat.addEventListener('click', () => switchTab('chat'));
+if (navTraining) navTraining.addEventListener('click', () => switchTab('training'));
+if (navDomain) navDomain.addEventListener('click', () => switchTab('domain'));
 
 // Domain Analysis
 if (analyzeBtn) {
@@ -244,3 +259,72 @@ function checkTyposquat(url) {
     }
     return false;
 }
+
+// --- SPOT THE PHISH GAME LOGIC ---
+const trainingCases = [
+    { url: "https://linkedin-jobs-apply.com", isPhish: true, reason: "Phishing: Contains hyphenated look-alike domain." },
+    { url: "https://accounts.google.com", isPhish: false, reason: "Safe: Official Google accounts domain." },
+    { url: "http://paypal-support-center.net", isPhish: true, reason: "Phishing: 'http' (insecure) and fake support domain." },
+    { url: "https://amazon.com", isPhish: false, reason: "Safe: Official Amazon domain." },
+    { url: "https://aple-id-recover.com", isPhish: true, reason: "Phishing: Misspelled 'aple' (Typosquatting)." },
+    { url: "https://microsoft.com/en-us/microsoft-365", isPhish: false, reason: "Safe: Valid Microsoft subdirectory." },
+    { url: "https://chaseweb.online-banking-secure.com", isPhish: true, reason: "Phishing: Uses long subdomain to hide real domain." },
+    { url: "https://github.com", isPhish: false, reason: "Safe: Official GitHub domain." }
+];
+
+let currentQuiz = null;
+let quizScore = 0;
+let quizStreak = 0;
+
+function initTraining() {
+    if (!currentQuiz) nextQuiz();
+}
+
+function nextQuiz() {
+    // Pick random case
+    currentQuiz = trainingCases[Math.floor(Math.random() * trainingCases.length)];
+
+    // Update UI
+    document.getElementById('quiz-domain').textContent = currentQuiz.url;
+    document.getElementById('quiz-domain').style.color = currentQuiz.isPhish ? "#fca5a5" : "#86efac"; // subtle hint color? No, keep it white for challenge.
+    document.getElementById('quiz-domain').style.color = "white";
+
+    // Hide Feedback
+    document.getElementById('quiz-feedback').style.display = 'none';
+}
+
+function checkQuiz(userSaysSafe) {
+    if (!currentQuiz) return;
+
+    const isCorrect = (userSaysSafe && !currentQuiz.isPhish) || (!userSaysSafe && currentQuiz.isPhish);
+
+    // Update Score
+    if (isCorrect) {
+        quizScore += 100;
+        quizStreak++;
+        document.getElementById('quiz-title').textContent = "CORRECT! 🎉";
+        document.getElementById('quiz-title').style.color = "#4ade80";
+        document.getElementById('quiz-icon').textContent = "🛡️";
+    } else {
+        quizStreak = 0;
+        document.getElementById('quiz-title').textContent = "WRONG! 💀";
+        document.getElementById('quiz-title').style.color = "#ef4444";
+        document.getElementById('quiz-icon').textContent = "❌";
+    }
+
+    document.getElementById('quiz-score').textContent = quizScore;
+    document.getElementById('quiz-streak').textContent = quizStreak;
+    document.getElementById('quiz-reason').textContent = currentQuiz.reason;
+
+    // Show Feedback
+    document.getElementById('quiz-feedback').style.display = 'flex';
+}
+
+// Quiz Listeners
+const btnSafe = document.getElementById('btn-safe');
+const btnPhish = document.getElementById('btn-phish');
+const btnNext = document.getElementById('btn-next-quiz');
+
+if (btnSafe) btnSafe.addEventListener('click', () => checkQuiz(true));
+if (btnPhish) btnPhish.addEventListener('click', () => checkQuiz(false));
+if (btnNext) btnNext.addEventListener('click', nextQuiz);
