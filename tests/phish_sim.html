@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phish-Sim Dojo | Active Defense Training</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: none;
+            background: #161b22;
+            border: none;
+            border-radius: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            padding: 15px;
+            border-bottom: 1px solid #30363d;
+            background: #0d1117;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #58a6ff;
+        }
+
+        .status {
+            font-size: 12px;
+            color: #d2a8ff;
+            border: 1px solid #d2a8ff;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .bot {
+            align-self: flex-start;
+            background: #21262d;
+            border-left: 3px solid #f78166;
+            /* Red for attacker */
+            color: #ffa198;
+        }
+
+        .user {
+            align-self: flex-end;
+            background: #1f6feb;
+            color: white;
+            border-right: 3px solid #58a6ff;
+        }
+
+        .input-area {
+            padding: 15px;
+            border-top: 1px solid #30363d;
+            background: #0d1117;
+            display: flex;
+            gap: 10px;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        input {
+            flex: 1;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #2ea043;
+        }
+
+        /* Typing Animation */
+        .typing {
+            font-style: italic;
+            color: #8b949e;
+            font-size: 12px;
+            margin-left: 10px;
+            display: none;
+        }
+
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .win-overlay h1 {
+            color: #58a6ff;
+            font-size: 40px;
+            text-shadow: 0 0 20px #58a6ff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>⚔️ PHISH-SIM DOJO</h2>
+            <span class="status">LIVE SCENARIO: Amazon Fraud</span>
+        </div>
+
+        <div class="chat-box" id="chat-box">
+            <div class="message bot">
+                [SYSTEM] Connecting to secure channel... <br>
+                [SYSTEM] Incoming encrypted message from: <strong>support@amazon-security-alert.com</strong>
+            </div>
+            <!-- Chat history goes here -->
+        </div>
+
+        <div class="typing" id="typing-indicator">Scammer is typing...</div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type your response... (Try to catch the scammer)" autofocus>
+            <button id="send-btn">SEND</button>
+        </div>
+    </div>
+
+    <div class="win-overlay" id="win-overlay">
+        <h1>🛡️ THREAT NEUTRALIZED!</h1>
+        <p style="font-size: 20px;">+500 XP Awarded</p>
+        <button id="play-again-btn" style="margin-top: 20px;">Play Again</button>
+    </div>
+
+    <div class="win-overlay" id="start-overlay"
+        style="background: rgba(13, 17, 23, 0.98); z-index: 250; display: flex;">
+        <h1 style="color: #60a5fa; font-size: 40px; text-shadow: 0 0 20px #60a5fa;">⚔️ CYBER DOJO</h1>
+        <div style="font-size: 50px; margin: 20px;">🤖</div>
+        <p style="font-size: 18px; color: #94a3b8; max-width: 600px; margin-bottom: 30px;">
+            Challenge an AI-powered Scimmer generated in real-time.
+            <br>Every session is a unique scenario. Can you spot the lie?
+        </p>
+        <button id="start-sim-btn"
+            style="padding: 15px 40px; font-size: 18px; background: linear-gradient(135deg, #2563eb, #7c3aed);">
+            🚀 Start Simulation (Generate)
+        </button>
+        <p id="loading-text" style="display:none; color: #38bdf8; margin-top:20px;">Generating unique scenario...</p>
+    </div>
+
+    <div class="win-overlay" id="fail-overlay" style="background: rgba(40, 0, 0, 0.95); z-index: 200;">
+        <h1 style="color: #ef4444; font-size: 50px; text-shadow: 0 0 20px #ef4444;">❌ YOU WERE SCAMMED!</h1>
+        <div style="font-size: 60px; margin: 20px;">☠️</div>
+        <p style="font-size: 18px; color: #fca5a5; max-width: 80%;">
+            You simulated giving away sensitive data. In real life, your bank account would be drained.
+        </p>
+        <button id="try-again-fail-btn" style="margin-top: 20px; background: #ef4444;">Try Again</button>
+    </div>
+
+    <script src="../js/phish_sim.js"></script>
+</body>
+
+</html>

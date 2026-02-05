@@ -800,35 +800,88 @@ app.get("/api/trust/all", async (req, res) => {
     }
 });
 
-// --- PHISH-SIM DOJO ENDPOINT ---
-app.post("/api/ai/chat", async (req, res) => {
-    try {
-        const { message, history } = req.body; // history = [{role: 'user', content: '...'}, ...]
+// --- PHISH-SIM DOJO ENDPOINTS ---
 
-        const systemPrompt = `
-        You are a sophisticated Security Training Bot simulating a phishing attack.
+// 1. GENERATE NEW SCENARIO (Infinite Mode)
+app.post("/api/ai/chat/start", async (req, res) => {
+    try {
+        console.log("[Phish-Sim] Generating new scenario...");
+
+        // Prompt AI to invent a scenario
+        const generationPrompt = `
+        Generate a UNIQUE, random phishing scenario for a cybersecurity training simulation.
+        It should vary (e.g., Crypto Scam, Netflix Refund, Fake Recruiter, Romance Scam, IRS, Package Delivery, CEO Fraud).
         
-        **SCENARIO:** "Amazon Customer Support" claiming a suspicious purchase of an iPhone 15 Pro ($999).
-        **OBJECTIVE:** Test if the user will give up sensitive info (Password, Credit Card, OTP).
-        
-        **BEHAVIOR RULES:**
-        1. Act exactly like a scammer: Use urgency, slight bad grammar, and push for verification.
-        2. **WIN CONDITION (USER)**: If the user exposes your lies (e.g., "This is a scam", "Domain is fake"), reply: "🏳️ TRAINING COMPLETE: You caught me! Well done."
-        3. **LOSE CONDITION (USER)**: If the user actually types a password, credit card number, or OTP, reply: "❌ SIMULATION FAILED: You were SCAMMED! You just shared sensitive info. In real life, your account would be stolen now."
-        4. Do NOT refuse to accept passwords. This is a safety drill. Acknowledge it immediately with the "SIMULATION FAILED" message.
-        
-        Start the conversation with: "Hello, this is Amazon Security. We noticed a $999 transaction on your account. Did you authorize this?"
+        Return STRICT JSON format:
+        {
+            "scenario_title": "Short Title (e.g. 'Fake Job Offer')",
+            "system_instruction": "Full system prompt defining the AI persona. format: 'You are... Your goal is... Win/Loss conditions...'",
+            "opening_line": "The first message sending to the victim."
+        }
+
+        For the 'system_instruction', include these EXACT rules:
+        - Win Condition: If user exposes the lie, say "🏳️ TRAINING COMPLETE: You caught me!".
+        - Lose Condition: If user gives sensitive info, say "❌ SIMULATION FAILED: You were SCAMMED!".
+        - Keep responses short (<2 sentences).
         `;
 
+        let result = null;
+
+        // Use Groq (Preferred) or Gemini
+        try {
+            if (GROQ_API_KEY) {
+                const groq = new Groq({ apiKey: GROQ_API_KEY });
+                const completion = await groq.chat.completions.create({
+                    messages: [{ role: "user", content: generationPrompt }],
+                    model: "llama-3.3-70b-versatile",
+                    response_format: { type: "json_object" }
+                });
+                result = JSON.parse(completion.choices[0]?.message?.content);
+            } else if (GEMINI_API_KEY) {
+                const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                const r = await model.generateContent(generationPrompt);
+                const text = r.response.text();
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) result = JSON.parse(jsonMatch[0]);
+            }
+        } catch (e) {
+            console.error("AI Generation Failed:", e);
+        }
+
+        // Fallback if AI fails (Offline Mode)
+        if (!result) {
+            result = {
+                scenario_title: "Amazon Fraud (Offline Fallback)",
+                system_instruction: "You are a fake Amazon Support agent. Try to get the user's credit card. If they catch you, say TRAINING COMPLETE.",
+                opening_line: "Amazon Alert: Suspicious purchase of $2000 detected. Verify immediately."
+            };
+        }
+
+        res.json({ success: true, ...result });
+
+    } catch (error) {
+        console.error("Start Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 2. CHAT HANDLER
+app.post("/api/ai/chat", async (req, res) => {
+    try {
+        const { message, history, systemPrompt } = req.body;
+
+        // Use the custom system prompt generated in /start, or a default
+        const context = systemPrompt || "You are a scamsimulator. Try to trick the user.";
+
         const messages = [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: context },
             ...(history || []),
             { role: "user", content: message }
         ];
 
         let reply = "";
 
-        // Prefer Groq for speed
         if (GROQ_API_KEY) {
             try {
                 const groq = new Groq({ apiKey: GROQ_API_KEY });
@@ -840,21 +893,14 @@ app.post("/api/ai/chat", async (req, res) => {
             } catch (e) { console.error("Groq Chat Error:", e); }
         }
 
-        // Fallback to Gemini
         if (!reply && GEMINI_API_KEY) {
             const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-            const chat = model.startChat({
-                history: history ? history.map(h => ({
-                    role: h.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: h.content }]
-                })) : []
-            });
-            const result = await chat.sendMessage(systemPrompt + "\n\nUser: " + message);
+            const result = await model.generateContent(`System: ${context}\n\nUser: ${message}`); // Simple pass for Gemini
             reply = result.response.text();
         }
 
-        if (!reply) reply = "Error: AI Scammer is offline. (Check API Keys)";
+        if (!reply) reply = "Error: AI Scammer is offline.";
 
         res.json({ success: true, reply });
 
