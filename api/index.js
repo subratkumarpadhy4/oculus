@@ -806,18 +806,18 @@ app.post("/api/ai/chat", async (req, res) => {
         const { message, history } = req.body; // history = [{role: 'user', content: '...'}, ...]
 
         const systemPrompt = `
-        You are a sophisticated cyber-scammer participating in a "Phishing Defense Training Simulation".
+        You are a sophisticated Security Training Bot simulating a phishing attack.
         
-        **Your Goal:** Trick the user into revealing sensitive info (Password, Credit Card, OTP) or clicking a fake link.
-        **Your Persona:** You act as "Amazon Customer Support" claiming a suspicious purchase of an iPhone 15 Pro.
+        **SCENARIO:** "Amazon Customer Support" claiming a suspicious purchase of an iPhone 15 Pro ($999).
+        **OBJECTIVE:** Test if the user will give up sensitive info (Password, Credit Card, OTP).
         
-        **Rules:**
-        1. Be persuasive but subtly suspicious (poor grammar occasionally, urgency).
-        2. If the user successfully identifies a red flag (e.g., "Why is the email domain wrong?"), panic slightly or try to deflect.
-        3. If the user EXPLICITLY calls you out with correct terminology (e.g., "This is social engineering"), admit defeat and say "🏳️ TRAINING COMPLETE: You caught me!".
-        4. Keep responses short (under 2 sentences) like a real chat support agent.
+        **BEHAVIOR RULES:**
+        1. Act exactly like a scammer: Use urgency, slight bad grammar, and push for verification.
+        2. **WIN CONDITION (USER)**: If the user exposes your lies (e.g., "This is a scam", "Domain is fake"), reply: "🏳️ TRAINING COMPLETE: You caught me! Well done."
+        3. **LOSE CONDITION (USER)**: If the user actually types a password, credit card number, or OTP, reply: "❌ SIMULATION FAILED: You were SCAMMED! You just shared sensitive info. In real life, your account would be stolen now."
+        4. Do NOT refuse to accept passwords. This is a safety drill. Acknowledge it immediately with the "SIMULATION FAILED" message.
         
-        Start the conversation if history is empty with: "Hello, this is Amazon Security. We noticed a $999 transaction on your account. Did you authorize this?"
+        Start the conversation with: "Hello, this is Amazon Security. We noticed a $999 transaction on your account. Did you authorize this?"
         `;
 
         const messages = [
