@@ -48,7 +48,7 @@ app.use(cors({
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
-app.options("*", cors());
+// app.options("*", cors());
 app.use(bodyParser.json());
 
 // Transporter for Nodemailer
@@ -796,6 +796,70 @@ app.get("/api/trust/all", async (req, res) => {
         })));
     } catch (error) {
         console.error('[API] Trust all error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --- PHISH-SIM DOJO ENDPOINT ---
+app.post("/api/ai/chat", async (req, res) => {
+    try {
+        const { message, history } = req.body; // history = [{role: 'user', content: '...'}, ...]
+
+        const systemPrompt = `
+        You are a sophisticated cyber-scammer participating in a "Phishing Defense Training Simulation".
+        
+        **Your Goal:** Trick the user into revealing sensitive info (Password, Credit Card, OTP) or clicking a fake link.
+        **Your Persona:** You act as "Amazon Customer Support" claiming a suspicious purchase of an iPhone 15 Pro.
+        
+        **Rules:**
+        1. Be persuasive but subtly suspicious (poor grammar occasionally, urgency).
+        2. If the user successfully identifies a red flag (e.g., "Why is the email domain wrong?"), panic slightly or try to deflect.
+        3. If the user EXPLICITLY calls you out with correct terminology (e.g., "This is social engineering"), admit defeat and say "🏳️ TRAINING COMPLETE: You caught me!".
+        4. Keep responses short (under 2 sentences) like a real chat support agent.
+        
+        Start the conversation if history is empty with: "Hello, this is Amazon Security. We noticed a $999 transaction on your account. Did you authorize this?"
+        `;
+
+        const messages = [
+            { role: "system", content: systemPrompt },
+            ...(history || []),
+            { role: "user", content: message }
+        ];
+
+        let reply = "";
+
+        // Prefer Groq for speed
+        if (GROQ_API_KEY) {
+            try {
+                const groq = new Groq({ apiKey: GROQ_API_KEY });
+                const completion = await groq.chat.completions.create({
+                    messages: messages,
+                    model: "llama-3.3-70b-versatile",
+                });
+                reply = completion.choices[0]?.message?.content;
+            } catch (e) { console.error("Groq Chat Error:", e); }
+        }
+
+        // Fallback to Gemini
+        if (!reply && GEMINI_API_KEY) {
+            const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const chat = model.startChat({
+                history: history ? history.map(h => ({
+                    role: h.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: h.content }]
+                })) : []
+            });
+            const result = await chat.sendMessage(systemPrompt + "\n\nUser: " + message);
+            reply = result.response.text();
+        }
+
+        if (!reply) reply = "Error: AI Scammer is offline. (Check API Keys)";
+
+        res.json({ success: true, reply });
+
+    } catch (error) {
+        console.error("Chat Error:", error);
         res.status(500).json({ error: error.message });
     }
 });

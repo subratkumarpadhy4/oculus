@@ -165,7 +165,12 @@ Our proprietary **Visual DNA Detection** system.
     *   **Manual Scan Mode**: Scan ANY email manually, even if it's from an unknown sender, with a single click.
 *   **Attachment Scanner**: Hash-based VirusTotal lookup that respects privacy (files never leave your PC).
 
-### 3. ⚙️ Advanced Risk Engine (`risk_engine.js`)
+### 3. 🥋 Phish-Sim Dojo (Interactive Training)
+*   **Active Defense Training**: Users don't just block attacks; they learn to spot them.
+*   **AI Scammer Simulation**: Users chat with a simulated scammer (powered by Gemini/Groq) in a safe "Hacker Matrix" environment.
+*   **Gamified Rewards**: Catching the AI in a lie grants **+500 XP**.
+
+### 4. ⚙️ Advanced Risk Engine (`risk_engine.js`)
 The core brain that aggregates scores from multiple heuristics:
 *   **Entropy Sentinel**: Detects DGA (Domain Generation Algorithm) domains like `xy-123-abc-bank.com` by calculating character randomness.
 *   **Typosquatting Detector**: Uses Levenshtein Distance to find domains close to popular brands (e.g., `g00gle.com` or `faceb00k.com`).
