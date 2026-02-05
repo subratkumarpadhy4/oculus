@@ -176,10 +176,69 @@
 
         <div class="typing" id="typing-indicator">Scammer is typing...</div>
 
-        <div class="input-area">
+        <!-- CHAT INPUT AREA -->
+        <div class="input-area" id="chat-input-area">
             <input type="text" id="user-input" placeholder="Type your response... (Try to catch the scammer)" autofocus>
             <button id="send-btn">SEND</button>
         </div>
+
+        <!-- DOMAIN DOJO SECTION (Hidden by default) -->
+        <div id="domain-dojo" style="display: none; height: 100%; padding: 20px; text-align: center; overflow-y: auto;">
+            <div style="font-size: 60px; margin-bottom: 20px;">🌐</div>
+            <h2 style="color: #4ade80; margin-bottom: 10px;">URL FORENSICS LAB</h2>
+            <p style="color: #94a3b8; margin-bottom: 30px;">Analyze suspicious links using our Entropy Engine & AI.</p>
+
+            <div style="display: flex; gap: 10px; max-width: 600px; margin: 0 auto;">
+                <input type="text" id="domain-input" placeholder="https://suspicious-link.com"
+                    style="flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white;">
+                <button id="analyze-btn"
+                    style="padding: 15px 30px; background: #238636; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;">
+                    ANALYZE
+                </button>
+            </div>
+
+            <!-- RESULTS CONTAINER -->
+            <div id="domain-result"
+                style="display: none; margin-top: 40px; background: #0d1117; padding: 20px; border-radius: 12px; border: 1px solid #30363d; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: #e2e8f0; margin: 0;">Threat Report</h3>
+                    <span id="risk-badge"
+                        style="background: #ef4444; color: white; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold;">HIGH
+                        RISK</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #161b22; padding: 15px; border-radius: 8px;">
+                        <div style="color: #8b949e; font-size: 12px;">ENTROPY SCORE</div>
+                        <div id="entropy-score" style="color: #fca5a5; font-size: 24px; font-weight: bold;">0.0</div>
+                    </div>
+                    <div style="background: #161b22; padding: 15px; border-radius: 8px;">
+                        <div style="color: #8b949e; font-size: 12px;">TYPOSQUAT DETECTED</div>
+                        <div id="typo-detected" style="color: #e2e8f0; font-size: 24px; font-weight: bold;">No</div>
+                    </div>
+                </div>
+
+                <div style="background: #161b22; padding: 15px; border-radius: 8px;">
+                    <div style="color: #8b949e; font-size: 12px; margin-bottom: 5px;">AI ANALYSIS</div>
+                    <p id="ai-analysis-text" style="color: #e2e8f0; line-height: 1.5; font-size: 14px;">
+                        Analyzing domain structure and reputation...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAV SWITCHER -->
+    <div
+        style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #161b22; border: 1px solid #30363d; border-radius: 50px; padding: 5px; display: flex; gap: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000;">
+        <button id="nav-chat" class="nav-btn active"
+            style="padding: 10px 25px; border-radius: 40px; border: none; background: #238636; color: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+            🥋 Social Eng.
+        </button>
+        <button id="nav-domain" class="nav-btn"
+            style="padding: 10px 25px; border-radius: 40px; border: none; background: transparent; color: #8b949e; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+            🌐 Domain Lab
+        </button>
     </div>
 
     <div class="win-overlay" id="win-overlay">
